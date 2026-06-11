@@ -43,3 +43,18 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+*.iml
+
+# VS Code
+.vscode/
+
+# API
+SossePizzerija_API/bin/
+SossePizzerija_API/obj/
+SossePizzerija_API/.vs/
