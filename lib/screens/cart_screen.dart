@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../services/auth_state.dart';
-import '../services/api_service.dart';
+import 'order_screen.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -14,7 +14,7 @@ class CartScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFFB71C1C),
         title: const Text(
-          "Korpa",
+          'Korpa',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -30,7 +30,7 @@ class CartScreen extends StatelessWidget {
                       size: 80, color: Colors.grey),
                   SizedBox(height: 16),
                   Text(
-                    "Vaša korpa je prazna",
+                    'Vaša korpa je prazna',
                     style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
                 ],
@@ -98,7 +98,7 @@ class CartScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    "${stavka.cijena.toStringAsFixed(2)} KM",
+                                    '${stavka.cijena.toStringAsFixed(2)} KM',
                                     style: const TextStyle(
                                       color: Color(0xFFB71C1C),
                                       fontWeight: FontWeight.bold,
@@ -131,7 +131,7 @@ class CartScreen extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8),
                                   child: Text(
-                                    "${stavka.kolicina}",
+                                    '${stavka.kolicina}',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
@@ -165,7 +165,7 @@ class CartScreen extends StatelessWidget {
                 ),
               ),
 
-              // UKUPNO I NARUCI
+              // UKUPNO I DUGME
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -184,14 +184,14 @@ class CartScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          "Ukupno:",
+                          'Ukupno:',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
-                          "${cart.ukupno.toStringAsFixed(2)} KM",
+                          '${cart.ukupno.toStringAsFixed(2)} KM',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -211,52 +211,25 @@ class CartScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        onPressed: () async {
+                        onPressed: () {
                           if (!AuthState.isPrijavljen) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content:
-                                    Text("Prijavite se da biste naručili!"),
+                                    Text('Prijavite se da biste naručili!'),
                                 backgroundColor: Colors.red,
                               ),
                             );
                             return;
                           }
-
-                          final korisnik = AuthState.korisnik!;
-                          final stavke = cart.stavke
-                              .map((s) => {
-                                    'pizzaId': s.pizzaId,
-                                    'kolicina': s.kolicina,
-                                    'cijena': s.cijena,
-                                  })
-                              .toList();
-
-                          final uspjeh = await ApiService.kreirajNarudzbu(
-                            korisnikId: korisnik['korisnikId'],
-                            ukupnaCijena: cart.ukupno,
-                            stavke: stavke,
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const OrderScreen(),
+                            ),
                           );
-
-                          if (uspjeh && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Narudžba uspješno poslana! 🍕"),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                            cart.ocistiKorpu();
-                          } else if (!uspjeh && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Greška pri narudžbi!"),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
                         },
                         child: const Text(
-                          "Naruči",
+                          'Nastavi na narudžbu',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
