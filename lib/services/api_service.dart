@@ -54,7 +54,6 @@ class ApiService {
     return [];
   }
 
-  // Vraća narudzbaId ili null ako greška
   static Future<int?> kreirajNarudzbu({
     required int korisnikId,
     required double ukupnaCijena,
@@ -81,7 +80,6 @@ class ApiService {
     return null;
   }
 
-  // Live praćenje: status + lokacija dostavljača
   static Future<Map<String, dynamic>?> getNarudzbaPracenje(
       int narudzbaId) async {
     try {
@@ -96,17 +94,14 @@ class ApiService {
     return null;
   }
 
-  // Admin: sve narudžbe
+  // Throws on error so admin can show error state
   static Future<List<dynamic>> getAllNarudzbe() async {
-    try {
-      final response =
-          await http.get(Uri.parse('$baseUrl/api/Narudzbe/GetAll'));
-      if (response.statusCode == 200) return jsonDecode(response.body);
-    } catch (_) {}
-    return [];
+    final response =
+        await http.get(Uri.parse('$baseUrl/api/Narudzbe/GetAll'));
+    if (response.statusCode == 200) return jsonDecode(response.body);
+    throw Exception('Server vratio ${response.statusCode}');
   }
 
-  // Admin: promijeni status narudžbe
   static Future<bool> azurirajStatusNarudzbe(
       int id, String status) async {
     final response = await http.put(
@@ -117,7 +112,6 @@ class ApiService {
     return response.statusCode == 200;
   }
 
-  // Admin: postavi GPS lokaciju dostavljača
   static Future<bool> azurirajLokacijuDostavljaca(
       int id, double lat, double lng) async {
     final response = await http.put(
