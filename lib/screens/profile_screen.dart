@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_state.dart';
 import '../services/api_service.dart';
+import '../services/narudzba_state.dart';
 import '../providers/cart_provider.dart';
 import 'login_screen.dart';
+import 'tracking_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,6 +15,19 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  int? _aktivnaNarudzbaId;
+
+  @override
+  void initState() {
+    super.initState();
+    _ucitajAktivnu();
+  }
+
+  Future<void> _ucitajAktivnu() async {
+    final id = await NarudzbaState.ucitaj();
+    if (mounted) setState(() => _aktivnaNarudzbaId = id);
+  }
+
   @override
   Widget build(BuildContext context) {
     final korisnik = AuthState.korisnik;
@@ -34,6 +49,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
+
+                  // AKTIVNA NARUDZBA BANNER
+                  if (_aktivnaNarudzbaId != null)
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TrackingScreen(
+                                narudzbaId: _aktivnaNarudzbaId!),
+                          ),
+                        ).then((_) => _ucitajAktivnu());
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 28),
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFB71C1C), Color(0xFFE53935)],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.red.withOpacity(0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.delivery_dining,
+                                color: Colors.white, size: 38),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'AKTIVNA NARUDŽBA',
+                                    style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2),
+                                  ),
+                                  Text(
+                                    'Narudžba #$_aktivnaNarudzbaId',
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  const Text(
+                                    'Tapni za praćenje dostave →',
+                                    style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.arrow_forward_ios,
+                                  color: Colors.white, size: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
 
                   // AVATAR
                   Container(
@@ -57,19 +149,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 4),
                   Text(
                     "@${korisnik['username']}",
-                    style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                    style:
+                        TextStyle(color: Colors.grey[600], fontSize: 16),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     korisnik['email'],
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    style:
+                        TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                   const SizedBox(height: 32),
 
                   // INFO KARTICE
-                  _infoKartica(Icons.email, "Email", korisnik['email']),
+                  _infoKartica(
+                      Icons.email, "Email", korisnik['email']),
                   const SizedBox(height: 12),
-                  _infoKartica(Icons.person, "Username", korisnik['username']),
+                  _infoKartica(Icons.person, "Username",
+                      korisnik['username']),
                   const SizedBox(height: 32),
 
                   // LOGOUT
@@ -83,10 +179,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      icon: const Icon(Icons.logout, color: Colors.white),
+                      icon: const Icon(Icons.logout,
+                          color: Colors.white),
                       label: const Text(
                         "Odjavi se",
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                        style: TextStyle(
+                            color: Colors.white, fontSize: 16),
                       ),
                       onPressed: () {
                         AuthState.logout();
@@ -108,15 +206,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 12),
                   FutureBuilder<List<dynamic>>(
-                    future: ApiService.getCustomPizze(korisnik['korisnikId']),
+                    future: ApiService.getCustomPizze(
+                        korisnik['korisnikId']),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
                         return const Center(
                           child: CircularProgressIndicator(
                               color: Color(0xFFB71C1C)),
                         );
                       }
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      if (!snapshot.hasData ||
+                          snapshot.data!.isEmpty) {
                         return Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -153,7 +254,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: Row(
                               children: [
                                 const Icon(Icons.local_pizza,
-                                    color: Color(0xFFB71C1C), size: 40),
+                                    color: Color(0xFFB71C1C),
+                                    size: 40),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
@@ -185,37 +287,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     fontSize: 13,
                                   ),
                                 ),
-                                // DODAJ U KORPU
                                 IconButton(
-                                  icon: const Icon(Icons.add_shopping_cart,
+                                  icon: const Icon(
+                                      Icons.add_shopping_cart,
                                       color: Color(0xFFB71C1C)),
                                   onPressed: () {
-                                    final cart = Provider.of<CartProvider>(
-                                        context,
-                                        listen: false);
+                                    final cart =
+                                        Provider.of<CartProvider>(
+                                            context,
+                                            listen: false);
                                     cart.dodajUKorpu(CartItem(
                                       pizzaId: 999,
-                                      naziv: pizza['naziv'] ?? 'Custom Pizza',
-                                      cijena: (pizza['ukupnaCijena'] as num)
+                                      naziv: pizza['naziv'] ??
+                                          'Custom Pizza',
+                                      cijena: (pizza['ukupnaCijena']
+                                              as num)
                                           .toDouble(),
-                                      imagePath: "assets/images/margarita.png",
+                                      imagePath:
+                                          "assets/images/margarita.png",
                                     ));
-                                    ScaffoldMessenger.of(context).showSnackBar(
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(
                                       const SnackBar(
-                                        content:
-                                            Text("Pizza dodana u korpu! 🍕"),
-                                        backgroundColor: Color(0xFFB71C1C),
+                                        content: Text(
+                                            "Pizza dodana u korpu! 🍕"),
+                                        backgroundColor:
+                                            Color(0xFFB71C1C),
                                       ),
                                     );
                                   },
                                 ),
-                                // OBRIŠI
                                 IconButton(
                                   icon: const Icon(Icons.delete,
                                       color: Colors.red),
                                   onPressed: () async {
                                     final uspjeh =
-                                        await ApiService.obrisiCustomPizzu(
+                                        await ApiService
+                                            .obrisiCustomPizzu(
                                       pizza['customPizzaId'],
                                     );
                                     if (uspjeh && mounted) {
@@ -223,7 +331,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         const SnackBar(
-                                          content: Text("Pizza obrisana!"),
+                                          content:
+                                              Text("Pizza obrisana!"),
                                           backgroundColor: Colors.red,
                                         ),
                                       );
@@ -240,7 +349,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   const SizedBox(height: 32),
 
-                  // HISTORIJA NARUDŽBI
+                  // HISTORIJA NARUDZBI
                   const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -251,15 +360,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 12),
                   FutureBuilder<List<dynamic>>(
-                    future: ApiService.getNarudzbe(korisnik['korisnikId']),
+                    future: ApiService.getNarudzbe(
+                        korisnik['korisnikId']),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
                         return const Center(
                           child: CircularProgressIndicator(
                               color: Color(0xFFB71C1C)),
                         );
                       }
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      if (!snapshot.hasData ||
+                          snapshot.data!.isEmpty) {
                         return Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -280,6 +392,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         itemCount: snapshot.data!.length,
                         itemBuilder: (context, index) {
                           final narudzba = snapshot.data![index];
+                          final String status =
+                              narudzba['status'] as String? ??
+                                  'Na čekanju';
+                          final int narudzbaId =
+                              (narudzba['narudzbаId'] as num)
+                                  .toInt();
                           return Container(
                             margin: const EdgeInsets.only(bottom: 8),
                             padding: const EdgeInsets.all(16),
@@ -296,7 +414,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: Row(
                               children: [
                                 const Icon(Icons.receipt_long,
-                                    color: Color(0xFFB71C1C), size: 40),
+                                    color: Color(0xFFB71C1C),
+                                    size: 40),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
@@ -304,7 +423,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        "Narudžba #${narudzba['narudzbаId']}",
+                                        "Narudžba #$narudzbaId",
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 15,
@@ -312,7 +431,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        narudzba['status'] ?? 'Na čekanju',
+                                        status,
                                         style: TextStyle(
                                             color: Colors.grey[600],
                                             fontSize: 12),
@@ -328,22 +447,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     fontSize: 13,
                                   ),
                                 ),
-                                // OBRIŠI NARUDŽBU
+                                // PRATI dugme za aktivne narudzbe
+                                if (status != 'Dostavljeno')
+                                  IconButton(
+                                    icon: const Icon(
+                                        Icons.delivery_dining,
+                                        color: Color(0xFFB71C1C)),
+                                    tooltip: 'Prati narudžbu',
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => TrackingScreen(
+                                              narudzbaId: narudzbaId),
+                                        ),
+                                      ).then((_) => _ucitajAktivnu());
+                                    },
+                                  ),
+                                // OBRISI
                                 IconButton(
                                   icon: const Icon(Icons.delete,
                                       color: Colors.red),
                                   onPressed: () async {
                                     final uspjeh =
                                         await ApiService.obrisiNarudzbu(
-                                      narudzba['narudzbаId'],
+                                      narudzbaId,
                                     );
                                     if (uspjeh && mounted) {
                                       setState(() {});
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         const SnackBar(
-                                          content:
-                                              Text("Narudžba obrisana!"),
+                                          content: Text(
+                                              "Narudžba obrisana!"),
                                           backgroundColor: Colors.red,
                                         ),
                                       );
@@ -391,7 +527,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                     child: const Text(
                       "Prijavi se",
-                      style: TextStyle(color: Colors.white, fontSize: 16),
+                      style:
+                          TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ),
                 ],
@@ -422,7 +559,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                  style:
+                      TextStyle(color: Colors.grey[600], fontSize: 12)),
               Text(value,
                   style: const TextStyle(
                       fontWeight: FontWeight.bold, fontSize: 15)),
