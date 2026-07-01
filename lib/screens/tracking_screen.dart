@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/api_service.dart';
+import '../services/narudzba_state.dart';
 
 class TrackingScreen extends StatefulWidget {
   final int narudzbaId;
@@ -19,6 +20,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   LatLng? _dostavljacLokacija;
   LatLng? _dostavaLokacija;
   String _status = 'Na čekanju';
+  String _etaText = '';
   bool _isLoading = true;
 
   static const LatLng _pizzerija = LatLng(43.8476, 18.3564);
@@ -58,8 +60,22 @@ class _TrackingScreenState extends State<TrackingScreen> {
           _dostavaLokacija =
               LatLng((lat as num).toDouble(), (lng as num).toDouble());
         }
+        _etaText = _calcEta();
+        if (_status == 'Dostavljeno') {
+          _timer?.cancel();
+          NarudzbaState.obrisi();
+        }
       }
     });
+  }
+
+  String _calcEta() {
+    if (_status != 'U dostavi') return '';
+    if (_dostavljacLokacija == null || _dostavaLokacija == null) return '';
+    const Distance d = Distance();
+    final double m = d(_dostavljacLokacija!, _dostavaLokacija!);
+    final int min = (m / 1000 / 25 * 60).ceil().clamp(1, 999);
+    return '~$min min';
   }
 
   Color get _statusBoja {
@@ -100,12 +116,14 @@ class _TrackingScreenState extends State<TrackingScreen> {
       if (_dostavljacLokacija != null)
         Marker(
           point: _dostavljacLokacija!,
-          child: const Icon(Icons.delivery_dining, color: Colors.blue, size: 42),
+          child: const Icon(Icons.delivery_dining,
+              color: Colors.blue, size: 42),
         ),
       if (_dostavaLokacija != null)
         Marker(
           point: _dostavaLokacija!,
-          child: const Icon(Icons.location_pin, color: Color(0xFFB71C1C), size: 42),
+          child: const Icon(Icons.location_pin,
+              color: Color(0xFFB71C1C), size: 42),
         ),
     ];
 
@@ -159,7 +177,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Status narudžbe',
-                        style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        style:
+                            TextStyle(fontSize: 11, color: Colors.grey)),
                     Text(
                       _status,
                       style: TextStyle(
@@ -168,6 +187,24 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         color: _statusBoja,
                       ),
                     ),
+                    if (_etaText.isNotEmpty) ...[  
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          const Icon(Icons.timer_outlined,
+                              color: Colors.green, size: 13),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Dolazi za $_etaText',
+                            style: const TextStyle(
+                              color: Colors.green,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
                 const Spacer(),
@@ -188,7 +225,10 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                _Korak(label: 'Primljeno', icon: Icons.receipt_long, active: true),
+                _Korak(
+                    label: 'Primljeno',
+                    icon: Icons.receipt_long,
+                    active: true),
                 _Linija(
                     active: _status == 'U pripremi' ||
                         _status == 'U dostavi' ||
@@ -278,7 +318,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         MarkerLayer(markers: markers),
                       ],
                     ),
-                    // ZOOM DUGMAD
                     Positioned(
                       right: 10,
                       bottom: 10,
@@ -315,11 +354,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                const Icon(Icons.access_time,
+                    size: 14, color: Colors.grey),
                 const SizedBox(width: 6),
                 Text(
                   'Narudžba #${widget.narudzbaId}  •  osvježava se svakih 5s',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  style:
+                      const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ],
             ),
@@ -334,7 +375,10 @@ class _Korak extends StatelessWidget {
   final String label;
   final IconData icon;
   final bool active;
-  const _Korak({required this.label, required this.icon, required this.active});
+  const _Korak(
+      {required this.label,
+      required this.icon,
+      required this.active});
 
   @override
   Widget build(BuildContext context) {
@@ -344,10 +388,13 @@ class _Korak extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(7),
           decoration: BoxDecoration(
-            color: active ? const Color(0xFFB71C1C) : Colors.grey[200],
+            color: active
+                ? const Color(0xFFB71C1C)
+                : Colors.grey[200],
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 15,
+          child: Icon(icon,
+              size: 15,
               color: active ? Colors.white : Colors.grey),
         ),
         const SizedBox(height: 4),
@@ -355,8 +402,10 @@ class _Korak extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 9,
-            fontWeight: active ? FontWeight.bold : FontWeight.normal,
-            color: active ? const Color(0xFFB71C1C) : Colors.grey,
+            fontWeight:
+                active ? FontWeight.bold : FontWeight.normal,
+            color:
+                active ? const Color(0xFFB71C1C) : Colors.grey,
           ),
         ),
       ],
@@ -374,7 +423,9 @@ class _Linija extends StatelessWidget {
       child: Container(
         height: 2,
         margin: const EdgeInsets.only(bottom: 18),
-        color: active ? const Color(0xFFB71C1C) : Colors.grey[200],
+        color: active
+            ? const Color(0xFFB71C1C)
+            : Colors.grey[200],
       ),
     );
   }
@@ -384,7 +435,10 @@ class _LegendaItem extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String label;
-  const _LegendaItem({required this.icon, required this.color, required this.label});
+  const _LegendaItem(
+      {required this.icon,
+      required this.color,
+      required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -393,7 +447,8 @@ class _LegendaItem extends StatelessWidget {
         Icon(icon, color: color, size: 15),
         const SizedBox(width: 4),
         Text(label,
-            style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            style:
+                const TextStyle(fontSize: 11, color: Colors.grey)),
       ],
     );
   }

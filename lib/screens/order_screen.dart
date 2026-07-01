@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../services/auth_state.dart';
 import '../services/api_service.dart';
+import '../services/narudzba_state.dart';
 import 'tracking_screen.dart';
 
 class OrderScreen extends StatefulWidget {
@@ -59,7 +60,6 @@ class _OrderScreenState extends State<OrderScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // MAPA SA ZOOM
                   Container(
                     height: 280,
                     decoration: BoxDecoration(
@@ -108,7 +108,6 @@ class _OrderScreenState extends State<OrderScreen> {
                               ),
                             ],
                           ),
-                          // ZOOM DUGMAD
                           Positioned(
                             right: 10,
                             bottom: 10,
@@ -244,7 +243,6 @@ class _OrderScreenState extends State<OrderScreen> {
             ),
           ),
 
-          // POTVRDI DUGME
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -322,6 +320,7 @@ class _OrderScreenState extends State<OrderScreen> {
 
     if (narudzbaId != null) {
       cart.ocistiKorpu();
+      await NarudzbaState.sacuvaj(narudzbaId);
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => TrackingScreen(narudzbaId: narudzbaId),
