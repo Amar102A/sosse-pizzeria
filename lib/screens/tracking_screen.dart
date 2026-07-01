@@ -47,13 +47,11 @@ class _TrackingScreenState extends State<TrackingScreen> {
       _isLoading = false;
       if (podaci != null) {
         _status = podaci['status'] ?? 'Na čekanju';
-
         final dLat = podaci['dostavljacLatitude'];
         final dLng = podaci['dostavljacLongitude'];
         _dostavljacLokacija = (dLat != null && dLng != null)
             ? LatLng((dLat as num).toDouble(), (dLng as num).toDouble())
             : _pizzerija;
-
         final lat = podaci['latitude'];
         final lng = podaci['longitude'];
         if (lat != null && lng != null) {
@@ -66,27 +64,19 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
   Color get _statusBoja {
     switch (_status) {
-      case 'U pripremi':
-        return Colors.blue;
-      case 'U dostavi':
-        return Colors.green;
-      case 'Dostavljeno':
-        return Colors.grey;
-      default:
-        return Colors.orange;
+      case 'U pripremi': return Colors.blue;
+      case 'U dostavi': return Colors.green;
+      case 'Dostavljeno': return Colors.grey;
+      default: return Colors.orange;
     }
   }
 
   IconData get _statusIkona {
     switch (_status) {
-      case 'U pripremi':
-        return Icons.local_pizza;
-      case 'U dostavi':
-        return Icons.delivery_dining;
-      case 'Dostavljeno':
-        return Icons.check_circle;
-      default:
-        return Icons.hourglass_empty;
+      case 'U pripremi': return Icons.local_pizza;
+      case 'U dostavi': return Icons.delivery_dining;
+      case 'Dostavljeno': return Icons.check_circle;
+      default: return Icons.hourglass_empty;
     }
   }
 
@@ -110,20 +100,12 @@ class _TrackingScreenState extends State<TrackingScreen> {
       if (_dostavljacLokacija != null)
         Marker(
           point: _dostavljacLokacija!,
-          child: const Icon(
-            Icons.delivery_dining,
-            color: Colors.blue,
-            size: 42,
-          ),
+          child: const Icon(Icons.delivery_dining, color: Colors.blue, size: 42),
         ),
       if (_dostavaLokacija != null)
         Marker(
           point: _dostavaLokacija!,
-          child: const Icon(
-            Icons.location_pin,
-            color: Color(0xFFB71C1C),
-            size: 42,
-          ),
+          child: const Icon(Icons.location_pin, color: Color(0xFFB71C1C), size: 42),
         ),
     ];
 
@@ -169,16 +151,15 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     color: _statusBoja.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(_statusIkona, color: _statusBoja, size: 26),
+                  child:
+                      Icon(_statusIkona, color: _statusBoja, size: 26),
                 ),
                 const SizedBox(width: 14),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Status narudžbe',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
+                    const Text('Status narudžbe',
+                        style: TextStyle(fontSize: 11, color: Colors.grey)),
                     Text(
                       _status,
                       style: TextStyle(
@@ -195,9 +176,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Color(0xFFB71C1C),
-                    ),
+                        strokeWidth: 2, color: Color(0xFFB71C1C)),
                   ),
               ],
             ),
@@ -205,41 +184,34 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
           // PROGRESS KORACI
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                _Korak(
-                  label: 'Primljeno',
-                  icon: Icons.receipt_long,
-                  active: true,
-                ),
+                _Korak(label: 'Primljeno', icon: Icons.receipt_long, active: true),
                 _Linija(
-                  active: _status == 'U pripremi' ||
-                      _status == 'U dostavi' ||
-                      _status == 'Dostavljeno',
-                ),
+                    active: _status == 'U pripremi' ||
+                        _status == 'U dostavi' ||
+                        _status == 'Dostavljeno'),
                 _Korak(
-                  label: 'Priprema',
-                  icon: Icons.local_pizza,
-                  active: _status == 'U pripremi' ||
-                      _status == 'U dostavi' ||
-                      _status == 'Dostavljeno',
-                ),
+                    label: 'Priprema',
+                    icon: Icons.local_pizza,
+                    active: _status == 'U pripremi' ||
+                        _status == 'U dostavi' ||
+                        _status == 'Dostavljeno'),
                 _Linija(
                     active: _status == 'U dostavi' ||
                         _status == 'Dostavljeno'),
                 _Korak(
-                  label: 'Dostava',
-                  icon: Icons.delivery_dining,
-                  active:
-                      _status == 'U dostavi' || _status == 'Dostavljeno',
-                ),
+                    label: 'Dostava',
+                    icon: Icons.delivery_dining,
+                    active: _status == 'U dostavi' ||
+                        _status == 'Dostavljeno'),
                 _Linija(active: _status == 'Dostavljeno'),
                 _Korak(
-                  label: 'Dostavljeno',
-                  icon: Icons.check_circle,
-                  active: _status == 'Dostavljeno',
-                ),
+                    label: 'Dostavljeno',
+                    icon: Icons.check_circle,
+                    active: _status == 'Dostavljeno'),
               ],
             ),
           ),
@@ -269,39 +241,67 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
           const SizedBox(height: 10),
 
-          // MAPA
+          // MAPA SA ZOOM
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: center,
-                    initialZoom: 13,
-                  ),
+                child: Stack(
                   children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.pica_app',
-                    ),
-                    if (_dostavaLokacija != null &&
-                        _dostavljacLokacija != null)
-                      PolylineLayer(
-                        polylines: [
-                          Polyline(
-                            points: [
-                              _dostavljacLokacija!,
-                              _dostavaLokacija!
+                    FlutterMap(
+                      mapController: _mapController,
+                      options: MapOptions(
+                        initialCenter: center,
+                        initialZoom: 13,
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.example.pica_app',
+                        ),
+                        if (_dostavaLokacija != null &&
+                            _dostavljacLokacija != null)
+                          PolylineLayer(
+                            polylines: [
+                              Polyline(
+                                points: [
+                                  _dostavljacLokacija!,
+                                  _dostavaLokacija!
+                                ],
+                                strokeWidth: 3.5,
+                                color: Colors.blue.withOpacity(0.55),
+                              ),
                             ],
-                            strokeWidth: 3.5,
-                            color: Colors.blue.withOpacity(0.55),
+                          ),
+                        MarkerLayer(markers: markers),
+                      ],
+                    ),
+                    // ZOOM DUGMAD
+                    Positioned(
+                      right: 10,
+                      bottom: 10,
+                      child: Column(
+                        children: [
+                          _ZoomButton(
+                            icon: Icons.add,
+                            onTap: () => _mapController.move(
+                              _mapController.camera.center,
+                              _mapController.camera.zoom + 1,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          _ZoomButton(
+                            icon: Icons.remove,
+                            onTap: () => _mapController.move(
+                              _mapController.camera.center,
+                              _mapController.camera.zoom - 1,
+                            ),
                           ),
                         ],
                       ),
-                    MarkerLayer(markers: markers),
+                    ),
                   ],
                 ),
               ),
@@ -319,8 +319,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 const SizedBox(width: 6),
                 Text(
                   'Narudžba #${widget.narudzbaId}  •  osvježava se svakih 5s',
-                  style:
-                      const TextStyle(fontSize: 11, color: Colors.grey),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ],
             ),
@@ -335,8 +334,7 @@ class _Korak extends StatelessWidget {
   final String label;
   final IconData icon;
   final bool active;
-  const _Korak(
-      {required this.label, required this.icon, required this.active});
+  const _Korak({required this.label, required this.icon, required this.active});
 
   @override
   Widget build(BuildContext context) {
@@ -346,22 +344,19 @@ class _Korak extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(7),
           decoration: BoxDecoration(
-            color:
-                active ? const Color(0xFFB71C1C) : Colors.grey[200],
+            color: active ? const Color(0xFFB71C1C) : Colors.grey[200],
             shape: BoxShape.circle,
           ),
-          child: Icon(icon,
-              size: 15, color: active ? Colors.white : Colors.grey),
+          child: Icon(icon, size: 15,
+              color: active ? Colors.white : Colors.grey),
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
             fontSize: 9,
-            fontWeight:
-                active ? FontWeight.bold : FontWeight.normal,
-            color:
-                active ? const Color(0xFFB71C1C) : Colors.grey,
+            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            color: active ? const Color(0xFFB71C1C) : Colors.grey,
           ),
         ),
       ],
@@ -389,8 +384,7 @@ class _LegendaItem extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String label;
-  const _LegendaItem(
-      {required this.icon, required this.color, required this.label});
+  const _LegendaItem({required this.icon, required this.color, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -401,6 +395,34 @@ class _LegendaItem extends StatelessWidget {
         Text(label,
             style: const TextStyle(fontSize: 11, color: Colors.grey)),
       ],
+    );
+  }
+}
+
+class _ZoomButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _ZoomButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: Icon(icon, size: 20, color: Colors.black87),
+      ),
     );
   }
 }

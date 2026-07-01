@@ -4,6 +4,7 @@ import '../providers/cart_provider.dart';
 import 'home_screen.dart';
 import 'cart_screen.dart';
 import 'profile_screen.dart';
+import 'admin_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -19,6 +20,7 @@ class _MainScreenState extends State<MainScreen> {
     HomeScreen(),
     CartScreen(),
     ProfileScreen(),
+    AdminScreen(),
   ];
 
   @override
@@ -29,6 +31,7 @@ class _MainScreenState extends State<MainScreen> {
         currentIndex: _currentIndex,
         selectedItemColor: const Color(0xFFB71C1C),
         unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
         onTap: (index) {
           setState(() {
             _currentIndex = index;
@@ -37,7 +40,7 @@ class _MainScreenState extends State<MainScreen> {
         items: [
           const BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: "Menu",
+            label: 'Menu',
           ),
           BottomNavigationBarItem(
             icon: Consumer<CartProvider>(
@@ -57,7 +60,7 @@ class _MainScreenState extends State<MainScreen> {
                             shape: BoxShape.circle,
                           ),
                           child: Text(
-                            "${cart.brojStavki}",
+                            '${cart.brojStavki}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -70,11 +73,15 @@ class _MainScreenState extends State<MainScreen> {
                 );
               },
             ),
-            label: "Korpa",
+            label: 'Korpa',
           ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.person),
-            label: "Profil",
+            label: 'Profil',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.admin_panel_settings),
+            label: 'Admin',
           ),
         ],
       ),

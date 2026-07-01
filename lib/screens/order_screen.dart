@@ -59,7 +59,7 @@ class _OrderScreenState extends State<OrderScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // MAPA
+                  // MAPA SA ZOOM
                   Container(
                     height: 280,
                     decoration: BoxDecoration(
@@ -74,35 +74,63 @@ class _OrderScreenState extends State<OrderScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: FlutterMap(
-                        mapController: _mapController,
-                        options: MapOptions(
-                          initialCenter: _defaultCenter,
-                          initialZoom: 13.5,
-                          onTap: (tapPosition, point) {
-                            setState(() {
-                              _selectedLocation = point;
-                            });
-                          },
-                        ),
+                      child: Stack(
                         children: [
-                          TileLayer(
-                            urlTemplate:
-                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.example.pica_app',
+                          FlutterMap(
+                            mapController: _mapController,
+                            options: MapOptions(
+                              initialCenter: _defaultCenter,
+                              initialZoom: 13.5,
+                              onTap: (tapPosition, point) {
+                                setState(() {
+                                  _selectedLocation = point;
+                                });
+                              },
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate:
+                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.example.pica_app',
+                              ),
+                              MarkerLayer(
+                                markers: [
+                                  if (_selectedLocation != null)
+                                    Marker(
+                                      point: _selectedLocation!,
+                                      child: const Icon(
+                                        Icons.location_pin,
+                                        color: Color(0xFFB71C1C),
+                                        size: 44,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
                           ),
-                          MarkerLayer(
-                            markers: [
-                              if (_selectedLocation != null)
-                                Marker(
-                                  point: _selectedLocation!,
-                                  child: const Icon(
-                                    Icons.location_pin,
-                                    color: Color(0xFFB71C1C),
-                                    size: 44,
+                          // ZOOM DUGMAD
+                          Positioned(
+                            right: 10,
+                            bottom: 10,
+                            child: Column(
+                              children: [
+                                _ZoomButton(
+                                  icon: Icons.add,
+                                  onTap: () => _mapController.move(
+                                    _mapController.camera.center,
+                                    _mapController.camera.zoom + 1,
                                   ),
                                 ),
-                            ],
+                                const SizedBox(height: 4),
+                                _ZoomButton(
+                                  icon: Icons.remove,
+                                  onTap: () => _mapController.move(
+                                    _mapController.camera.center,
+                                    _mapController.camera.zoom - 1,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -114,7 +142,6 @@ class _OrderScreenState extends State<OrderScreen> {
 
                   const SizedBox(height: 24),
 
-                  // NACIN PLACANJA
                   _SectionTitle(title: 'Način plaćanja'),
                   const SizedBox(height: 12),
                   Row(
@@ -139,7 +166,6 @@ class _OrderScreenState extends State<OrderScreen> {
 
                   const SizedBox(height: 24),
 
-                  // PREGLED
                   _SectionTitle(title: 'Pregled narudžbe'),
                   const SizedBox(height: 12),
                   Container(
@@ -196,11 +222,11 @@ class _OrderScreenState extends State<OrderScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Row(
                           children: [
                             const Icon(Icons.payment,
-                                size: 16, color: Colors.grey),
+                                size: 15, color: Colors.grey),
                             const SizedBox(width: 6),
                             Text(
                               _nacinPlacanja,
@@ -218,7 +244,7 @@ class _OrderScreenState extends State<OrderScreen> {
             ),
           ),
 
-          // DUGME
+          // POTVRDI DUGME
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -321,10 +347,9 @@ class _SectionTitle extends StatelessWidget {
     return Text(
       title,
       style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-        color: Color(0xFF212121),
-      ),
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF212121)),
     );
   }
 }
@@ -351,8 +376,7 @@ class _LocationStatusBanner extends StatelessWidget {
               child: Text(
                 'Odabrana lokacija: ${location!.latitude.toStringAsFixed(4)}, '
                 '${location!.longitude.toStringAsFixed(4)}',
-                style:
-                    const TextStyle(fontSize: 12, color: Colors.green),
+                style: const TextStyle(fontSize: 12, color: Colors.green),
               ),
             ),
           ],
@@ -405,9 +429,7 @@ class _PaymentOption extends StatelessWidget {
             color: selected ? const Color(0xFFB71C1C) : Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected
-                  ? const Color(0xFFB71C1C)
-                  : Colors.grey[300]!,
+              color: selected ? const Color(0xFFB71C1C) : Colors.grey[300]!,
               width: 2,
             ),
             boxShadow: [
@@ -420,11 +442,9 @@ class _PaymentOption extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Icon(
-                icon,
-                color: selected ? Colors.white : Colors.grey[600],
-                size: 28,
-              ),
+              Icon(icon,
+                  color: selected ? Colors.white : Colors.grey[600],
+                  size: 28),
               const SizedBox(height: 6),
               Text(
                 label,
@@ -438,6 +458,34 @@ class _PaymentOption extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ZoomButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _ZoomButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: Icon(icon, size: 20, color: Colors.black87),
       ),
     );
   }
