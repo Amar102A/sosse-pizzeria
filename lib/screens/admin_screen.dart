@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -29,7 +30,9 @@ class AdminScreen extends StatefulWidget {
 class _AdminScreenState extends State<AdminScreen> {
   List<dynamic> _narudzbe = [];
   bool _isLoading = true;
+  bool _apiGreska = false;
   String _filterStatus = 'Sve';
+  Timer? _refreshTimer;
 
   static const List<String> _statusi = [
     'Sve', 'Na čekanju', 'U pripremi', 'U dostavi', 'Dostavljeno',
@@ -38,17 +41,42 @@ class _AdminScreenState extends State<AdminScreen> {
   @override
   void initState() {
     super.initState();
-    if (AdminAuth.isLoggedIn) _ucitaj();
+    if (AdminAuth.isLoggedIn) {
+      _ucitaj();
+      _startTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (AdminAuth.isLoggedIn && mounted) _ucitaj();
+    });
   }
 
   Future<void> _ucitaj() async {
-    setState(() => _isLoading = true);
-    final data = await ApiService.getAllNarudzbe();
-    if (mounted) {
-      setState(() {
-        _narudzbe = data;
-        _isLoading = false;
-      });
+    setState(() { _isLoading = true; _apiGreska = false; });
+    try {
+      final data = await ApiService.getAllNarudzbe();
+      if (mounted) {
+        setState(() {
+          _narudzbe = data;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _apiGreska = true;
+        });
+      }
     }
   }
 
@@ -73,7 +101,8 @@ class _AdminScreenState extends State<AdminScreen> {
 
   void _logout() {
     AdminAuth.logout();
-    setState(() => _narudzbe = []);
+    _refreshTimer?.cancel();
+    setState(() { _narudzbe = []; _apiGreska = false; });
   }
 
   @override
@@ -83,6 +112,7 @@ class _AdminScreenState extends State<AdminScreen> {
         onLogin: () {
           setState(() {});
           _ucitaj();
+          _startTimer();
         },
       );
     }
@@ -98,7 +128,8 @@ class _AdminScreenState extends State<AdminScreen> {
         backgroundColor: const Color(0xFF37474F),
         title: const Text(
           'Admin Panel',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style:
+              TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         actions: [
@@ -145,8 +176,8 @@ class _AdminScreenState extends State<AdminScreen> {
           // FILTER CHIPS
           Container(
             color: Colors.white,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 10),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -162,8 +193,9 @@ class _AdminScreenState extends State<AdminScreen> {
                       selectedColor: const Color(0xFF37474F),
                       labelStyle: TextStyle(
                         color: active ? Colors.white : Colors.black87,
-                        fontWeight:
-                            active ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: active
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                       checkmarkColor: Colors.white,
                     ),
@@ -174,105 +206,113 @@ class _AdminScreenState extends State<AdminScreen> {
           ),
           const Divider(height: 1),
 
-          // LISTA NARUDZBI
+          // LISTA / GRESKA
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _filtrirane.isEmpty
-                    ? const Center(
-                        child: Text('Nema narudžbi',
-                            style: TextStyle(color: Colors.grey)))
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: _filtrirane.length,
-                        itemBuilder: (context, i) {
-                          final n =
-                              _filtrirane[i] as Map<String, dynamic>;
-                          final id = n['narudzbaId'] as int;
-                          final status =
-                              n['status'] as String? ?? 'Na čekanju';
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 2,
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  // HEADER
-                                  Row(
+                : _apiGreska
+                    ? _ApiGreskaView(onRetry: _ucitaj)
+                    : _filtrirane.isEmpty
+                        ? const Center(
+                            child: Text('Nema narudžbi',
+                                style: TextStyle(color: Colors.grey)))
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(12),
+                            itemCount: _filtrirane.length,
+                            itemBuilder: (context, i) {
+                              final n = _filtrirane[i]
+                                  as Map<String, dynamic>;
+                              final id = n['narudzbaId'] as int;
+                              final status = n['status'] as String? ??
+                                  'Na čekanju';
+                              return Card(
+                                margin:
+                                    const EdgeInsets.only(bottom: 10),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(12),
+                                ),
+                                elevation: 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text('#$id',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16)),
-                                      const SizedBox(width: 10),
-                                      Container(
-                                        padding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 10,
-                                                vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: _statusBoja(status)
-                                              .withOpacity(0.12),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                        ),
-                                        child: Text(
-                                          status,
-                                          style: TextStyle(
-                                            color: _statusBoja(status),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
+                                      Row(
+                                        children: [
+                                          Text('#$id',
+                                              style: const TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold,
+                                                  fontSize: 16)),
+                                          const SizedBox(width: 10),
+                                          Container(
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: _statusBoja(status)
+                                                  .withOpacity(0.12),
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      20),
+                                            ),
+                                            child: Text(
+                                              status,
+                                              style: TextStyle(
+                                                color:
+                                                    _statusBoja(status),
+                                                fontSize: 12,
+                                                fontWeight:
+                                                    FontWeight.bold,
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                          const Spacer(),
+                                          Text(
+                                            '${(n['ukupnaCijena'] as num).toStringAsFixed(2)} KM',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFFB71C1C)),
+                                          ),
+                                        ],
                                       ),
-                                      const Spacer(),
-                                      Text(
-                                        '${(n['ukupnaCijena'] as num).toStringAsFixed(2)} KM',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFFB71C1C)),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.person,
+                                              size: 14,
+                                              color: Colors.grey),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                              n['korisnikIme'] ??
+                                                  'Nepoznat',
+                                              style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.grey)),
+                                          const SizedBox(width: 14),
+                                          const Icon(Icons.payment,
+                                              size: 14,
+                                              color: Colors.grey),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                              n['nacinPlacanja'] ?? '-',
+                                              style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.grey)),
+                                        ],
                                       ),
+                                      const SizedBox(height: 12),
+                                      _buildStatusAkcije(
+                                          context, id, status, n),
                                     ],
                                   ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.person,
-                                          size: 14, color: Colors.grey),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                          n['korisnikIme'] ?? 'Nepoznat',
-                                          style: const TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.grey)),
-                                      const SizedBox(width: 14),
-                                      const Icon(Icons.payment,
-                                          size: 14, color: Colors.grey),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                          n['nacinPlacanja'] ?? '-',
-                                          style: const TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.grey)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-
-                                  // STATUS AKCIJE
-                                  _buildStatusAkcije(
-                                      context, id, status, n),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                                ),
+                              );
+                            },
+                          ),
           ),
         ],
       ),
@@ -284,7 +324,6 @@ class _AdminScreenState extends State<AdminScreen> {
       int id,
       String status,
       Map<String, dynamic> n) {
-    // Nova narudžba čeka prihvatanje
     if (status == 'Na čekanju') {
       return SizedBox(
         width: double.infinity,
@@ -307,7 +346,6 @@ class _AdminScreenState extends State<AdminScreen> {
       );
     }
 
-    // Završena narudžba
     if (status == 'Dostavljeno') {
       return const Row(
         children: [
@@ -319,7 +357,6 @@ class _AdminScreenState extends State<AdminScreen> {
       );
     }
 
-    // U pripremi / U dostavi — prikaz akcija
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -385,6 +422,55 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 }
 
+// ─────────────────────── API GRESKA VIEW ───────────────────────
+
+class _ApiGreskaView extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _ApiGreskaView({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.wifi_off, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            const Text(
+              'Nije moguće spojiti se na server',
+              style: TextStyle(
+                  fontSize: 17, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Provjeri da li je API pokrenut na\nlocalhost:5188 i da li je baza spojena.',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Pokušaj ponovo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF37474F),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─────────────────────── ADMIN LOGIN ───────────────────────
 
 class _AdminLoginView extends StatefulWidget {
@@ -403,12 +489,8 @@ class _AdminLoginViewState extends State<_AdminLoginView> {
   bool _loading = false;
 
   void _login() {
-    setState(() {
-      _loading = true;
-      _error = false;
-    });
-    final ok =
-        AdminAuth.login(_usernameCtrl.text, _passwordCtrl.text);
+    setState(() { _loading = true; _error = false; });
+    final ok = AdminAuth.login(_usernameCtrl.text, _passwordCtrl.text);
     setState(() => _loading = false);
     if (ok) {
       widget.onLogin();
@@ -447,7 +529,8 @@ class _AdminLoginViewState extends State<_AdminLoginView> {
               const SizedBox(height: 6),
               const Text(
                 'Unesite pristupne podatke',
-                style: TextStyle(color: Colors.white60, fontSize: 14),
+                style:
+                    TextStyle(color: Colors.white60, fontSize: 14),
               ),
               const SizedBox(height: 36),
               Container(
@@ -572,7 +655,8 @@ class _DostavljacMapaSheetState extends State<_DostavljacMapaSheet> {
       height: MediaQuery.of(context).size.height * 0.72,
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         children: [
@@ -682,8 +766,8 @@ class _StatKartica extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        padding: const EdgeInsets.symmetric(
+            vertical: 12, horizontal: 10),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
           borderRadius: BorderRadius.circular(10),
@@ -728,8 +812,8 @@ class _StatusChip extends StatelessWidget {
     return GestureDetector(
       onTap: active ? null : onTap,
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: active ? color : Colors.transparent,
           border: Border.all(color: color),
