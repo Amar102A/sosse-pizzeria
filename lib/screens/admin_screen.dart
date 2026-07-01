@@ -3,6 +3,22 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/api_service.dart';
 
+class AdminAuth {
+  static bool isLoggedIn = false;
+  static const String _username = 'admin';
+  static const String _password = 'admin123';
+
+  static bool login(String username, String password) {
+    if (username.trim() == _username && password == _password) {
+      isLoggedIn = true;
+      return true;
+    }
+    return false;
+  }
+
+  static void logout() => isLoggedIn = false;
+}
+
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
 
@@ -22,7 +38,7 @@ class _AdminScreenState extends State<AdminScreen> {
   @override
   void initState() {
     super.initState();
-    _ucitaj();
+    if (AdminAuth.isLoggedIn) _ucitaj();
   }
 
   Future<void> _ucitaj() async {
@@ -55,10 +71,26 @@ class _AdminScreenState extends State<AdminScreen> {
     _ucitaj();
   }
 
+  void _logout() {
+    AdminAuth.logout();
+    setState(() => _narudzbe = []);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final naCekanju = _narudzbe.where((n) => n['status'] == 'Na čekanju').length;
-    final uDostavi = _narudzbe.where((n) => n['status'] == 'U dostavi').length;
+    if (!AdminAuth.isLoggedIn) {
+      return _AdminLoginView(
+        onLogin: () {
+          setState(() {});
+          _ucitaj();
+        },
+      );
+    }
+
+    final naCekanju =
+        _narudzbe.where((n) => n['status'] == 'Na čekanju').length;
+    final uDostavi =
+        _narudzbe.where((n) => n['status'] == 'U dostavi').length;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -73,6 +105,11 @@ class _AdminScreenState extends State<AdminScreen> {
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _ucitaj,
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white70),
+            onPressed: _logout,
+            tooltip: 'Odjavi se',
           ),
         ],
       ),
@@ -108,7 +145,8 @@ class _AdminScreenState extends State<AdminScreen> {
           // FILTER CHIPS
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -148,7 +186,8 @@ class _AdminScreenState extends State<AdminScreen> {
                         padding: const EdgeInsets.all(12),
                         itemCount: _filtrirane.length,
                         itemBuilder: (context, i) {
-                          final n = _filtrirane[i];
+                          final n =
+                              _filtrirane[i] as Map<String, dynamic>;
                           final id = n['narudzbaId'] as int;
                           final status =
                               n['status'] as String? ?? 'Na čekanju';
@@ -173,8 +212,10 @@ class _AdminScreenState extends State<AdminScreen> {
                                               fontSize: 16)),
                                       const SizedBox(width: 10),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 10, vertical: 3),
+                                        padding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 10,
+                                                vertical: 3),
                                         decoration: BoxDecoration(
                                           color: _statusBoja(status)
                                               .withOpacity(0.12),
@@ -224,61 +265,8 @@ class _AdminScreenState extends State<AdminScreen> {
                                   const SizedBox(height: 12),
 
                                   // STATUS AKCIJE
-                                  SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      children: [
-                                        _StatusChip(
-                                          label: 'U pripremi',
-                                          active: status == 'U pripremi',
-                                          color: Colors.blue,
-                                          onTap: () => _promijeniStatus(
-                                              id, 'U pripremi'),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        _StatusChip(
-                                          label: 'U dostavi',
-                                          active: status == 'U dostavi',
-                                          color: Colors.green,
-                                          onTap: () => _promijeniStatus(
-                                              id, 'U dostavi'),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        _StatusChip(
-                                          label: 'Dostavljeno',
-                                          active: status == 'Dostavljeno',
-                                          color: Colors.grey,
-                                          onTap: () => _promijeniStatus(
-                                              id, 'Dostavljeno'),
-                                        ),
-                                        if (status == 'U dostavi') ...
-                                        [
-                                          const SizedBox(width: 8),
-                                          OutlinedButton.icon(
-                                            onPressed: () =>
-                                                _otvoriMapuDostavljaca(
-                                                    context, n),
-                                            icon: const Icon(
-                                                Icons.my_location,
-                                                size: 14),
-                                            label: const Text('GPS',
-                                                style: TextStyle(
-                                                    fontSize: 12)),
-                                            style:
-                                                OutlinedButton.styleFrom(
-                                              foregroundColor: Colors.blue,
-                                              side: const BorderSide(
-                                                  color: Colors.blue),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 6),
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
+                                  _buildStatusAkcije(
+                                      context, id, status, n),
                                 ],
                               ),
                             ),
@@ -286,6 +274,92 @@ class _AdminScreenState extends State<AdminScreen> {
                         },
                       ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusAkcije(
+      BuildContext context,
+      int id,
+      String status,
+      Map<String, dynamic> n) {
+    // Nova narudžba čeka prihvatanje
+    if (status == 'Na čekanju') {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () => _promijeniStatus(id, 'U pripremi'),
+          icon: const Icon(Icons.check_circle_outline,
+              size: 18, color: Colors.white),
+          label: const Text(
+            'Prihvati narudžbu',
+            style: TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10)),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+          ),
+        ),
+      );
+    }
+
+    // Završena narudžba
+    if (status == 'Dostavljeno') {
+      return const Row(
+        children: [
+          Icon(Icons.check_circle, color: Colors.grey, size: 16),
+          SizedBox(width: 6),
+          Text('Narudžba završena',
+              style: TextStyle(color: Colors.grey, fontSize: 13)),
+        ],
+      );
+    }
+
+    // U pripremi / U dostavi — prikaz akcija
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _StatusChip(
+            label: 'U pripremi',
+            active: status == 'U pripremi',
+            color: Colors.blue,
+            onTap: () => _promijeniStatus(id, 'U pripremi'),
+          ),
+          const SizedBox(width: 8),
+          _StatusChip(
+            label: 'U dostavi',
+            active: status == 'U dostavi',
+            color: Colors.green,
+            onTap: () => _promijeniStatus(id, 'U dostavi'),
+          ),
+          const SizedBox(width: 8),
+          _StatusChip(
+            label: 'Dostavljeno',
+            active: false,
+            color: Colors.grey,
+            onTap: () => _promijeniStatus(id, 'Dostavljeno'),
+          ),
+          if (status == 'U dostavi') ...
+          [
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: () => _otvoriMapuDostavljaca(context, n),
+              icon: const Icon(Icons.my_location, size: 14),
+              label:
+                  const Text('GPS', style: TextStyle(fontSize: 12)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.blue,
+                side: const BorderSide(color: Colors.blue),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 6),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -300,14 +374,169 @@ class _AdminScreenState extends State<AdminScreen> {
       builder: (_) => _DostavljacMapaSheet(
         narudzbaId: narudzba['narudzbaId'] as int,
         initialLat:
-            (narudzba['dostavljacLatitude'] as num?)?.toDouble() ?? 43.8476,
+            (narudzba['dostavljacLatitude'] as num?)?.toDouble() ??
+                43.8476,
         initialLng:
-            (narudzba['dostavljacLongitude'] as num?)?.toDouble() ?? 18.3564,
+            (narudzba['dostavljacLongitude'] as num?)?.toDouble() ??
+                18.3564,
         onSaved: _ucitaj,
       ),
     );
   }
 }
+
+// ─────────────────────── ADMIN LOGIN ───────────────────────
+
+class _AdminLoginView extends StatefulWidget {
+  final VoidCallback onLogin;
+  const _AdminLoginView({required this.onLogin});
+
+  @override
+  State<_AdminLoginView> createState() => _AdminLoginViewState();
+}
+
+class _AdminLoginViewState extends State<_AdminLoginView> {
+  final _usernameCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  bool _obscure = true;
+  bool _error = false;
+  bool _loading = false;
+
+  void _login() {
+    setState(() {
+      _loading = true;
+      _error = false;
+    });
+    final ok =
+        AdminAuth.login(_usernameCtrl.text, _passwordCtrl.text);
+    setState(() => _loading = false);
+    if (ok) {
+      widget.onLogin();
+    } else {
+      setState(() => _error = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _usernameCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF37474F),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.admin_panel_settings,
+                  size: 80, color: Colors.white),
+              const SizedBox(height: 16),
+              const Text(
+                'Admin Pristup',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Unesite pristupne podatke',
+                style: TextStyle(color: Colors.white60, fontSize: 14),
+              ),
+              const SizedBox(height: 36),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _usernameCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Korisničko ime',
+                        prefixIcon:
+                            const Icon(Icons.person_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        errorText: _error ? ' ' : null,
+                      ),
+                      onSubmitted: (_) => _login(),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _passwordCtrl,
+                      obscureText: _obscure,
+                      decoration: InputDecoration(
+                        labelText: 'Lozinka',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscure
+                              ? Icons.visibility_off
+                              : Icons.visibility),
+                          onPressed: () =>
+                              setState(() => _obscure = !_obscure),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        errorText: _error
+                            ? 'Pogrešno korisničko ime ili lozinka'
+                            : null,
+                      ),
+                      onSubmitted: (_) => _login(),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF37474F),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: _loading ? null : _login,
+                        child: _loading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white)
+                            : const Text(
+                                'Prijava',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────── DOSTAVLJAČ MAPA ───────────────────────
 
 class _DostavljacMapaSheet extends StatefulWidget {
   final int narudzbaId;
@@ -363,8 +592,10 @@ class _DostavljacMapaSheetState extends State<_DostavljacMapaSheet> {
                 const Text('Postavi lokaciju dostavljača',
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold)),
-                const Text('Tapnite na mapu da premjestite dostavljača',
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const Text(
+                    'Tapnite na mapu da premjestite dostavljača',
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           ),
@@ -419,7 +650,8 @@ class _DostavljacMapaSheetState extends State<_DostavljacMapaSheet> {
                         if (mounted) Navigator.of(context).pop();
                       },
                 child: _saving
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? const CircularProgressIndicator(
+                        color: Colors.white)
                     : const Text('Postavi lokaciju',
                         style: TextStyle(
                             color: Colors.white,
@@ -432,6 +664,8 @@ class _DostavljacMapaSheetState extends State<_DostavljacMapaSheet> {
     );
   }
 }
+
+// ─────────────────────── POMOĆNI WIDGETI ───────────────────────
 
 class _StatKartica extends StatelessWidget {
   final String label;
@@ -448,7 +682,8 @@ class _StatKartica extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        padding:
+            const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
           borderRadius: BorderRadius.circular(10),
